@@ -202,9 +202,10 @@ export default function App() {
                 chunkResults={completedResults}
                 evalState={evalState}
                 queryState={queryState}
+                embeddingMode={settings.embeddingMode}
                 onRunEval={() => runEval(completedResults, buildLLMConfig(settings), settings.evalSampleSize)}
                 onQueryChange={setQuery}
-                onRunQuery={() => runQuery(completedResults, buildLLMConfig(settings), settings.topK)}
+                onRunQuery={() => runQuery(completedResults, buildLLMConfig(settings), settings.topK, settings.embeddingMode)}
                 onJudge={judgeRelevance}
                 precisionAt={precisionAt}
               />

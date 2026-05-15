@@ -13,6 +13,9 @@ export default defineConfig(({ command }) => ({
       'node:fs': path.resolve(__dirname, './src/lib/noop.ts'),
     },
   },
+  optimizeDeps: {
+    exclude: ['@huggingface/transformers'],
+  },
   build: {
     chunkSizeWarningLimit: 1600,
   },

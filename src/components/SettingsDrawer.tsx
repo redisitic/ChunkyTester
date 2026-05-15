@@ -9,15 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { LLMProvider } from '@/types'
 
 const STORAGE = {
-  provider:     'rag_portal_provider',
-  anthropicKey: 'rag_portal_apikey',
-  geminiKey:    'rag_portal_gemini_key',
-  geminiModel:  'rag_portal_gemini_model',
-  ollamaUrl:    'rag_portal_ollama_url',
-  ollamaModel:  'rag_portal_ollama_model',
+  provider:      'rag_portal_provider',
+  anthropicKey:  'rag_portal_apikey',
+  geminiKey:     'rag_portal_gemini_key',
+  geminiModel:   'rag_portal_gemini_model',
+  ollamaUrl:     'rag_portal_ollama_url',
+  ollamaModel:   'rag_portal_ollama_model',
+  embeddingMode: 'rag_portal_embedding_mode',
 }
 
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+
+export type EmbeddingMode = 'local' | 'llm'
 
 export interface AppSettings {
   provider: LLMProvider
@@ -29,6 +32,7 @@ export interface AppSettings {
   evalSampleSize: number
   topK: number
   theme: 'light' | 'dark'
+  embeddingMode: EmbeddingMode
 }
 
 interface Props {
@@ -182,6 +186,30 @@ export function SettingsDrawer({ settings, onSettingsChange }: Props) {
 
         <Separator />
 
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Retrieval Embeddings</label>
+          <Select
+            value={settings.embeddingMode}
+            onValueChange={v => {
+              if (v) {
+                localStorage.setItem(STORAGE.embeddingMode, v)
+                onSettingsChange({ embeddingMode: v as EmbeddingMode })
+              }
+            }}
+          >
+            <SelectTrigger className="h-8 text-sm w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="local">Local (transformers.js · free · in-browser)</SelectItem>
+              <SelectItem value="llm">LLM ranking (uses API credits)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {settings.embeddingMode === 'local'
+              ? 'Xenova/all-MiniLM-L6-v2 · ~23 MB · downloaded once, cached by browser'
+              : 'LLM scores chunks by relevance via prompt — no local model required'}
+          </p>
+        </div>
+
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Theme</label>
           <Button variant="outline" size="sm" onClick={() => onSettingsChange({ theme: settings.theme === 'light' ? 'dark' : 'light' })}>
@@ -195,15 +223,16 @@ export function SettingsDrawer({ settings, onSettingsChange }: Props) {
 
 export function loadSettings(): AppSettings {
   return {
-    provider:     (localStorage.getItem(STORAGE.provider) as LLMProvider) ?? 'anthropic',
-    anthropicKey: localStorage.getItem(STORAGE.anthropicKey) ?? '',
-    geminiKey:    localStorage.getItem(STORAGE.geminiKey) ?? '',
-    geminiModel:  localStorage.getItem(STORAGE.geminiModel) ?? 'gemini-2.0-flash',
+    provider:      (localStorage.getItem(STORAGE.provider) as LLMProvider) ?? 'anthropic',
+    anthropicKey:  localStorage.getItem(STORAGE.anthropicKey) ?? '',
+    geminiKey:     localStorage.getItem(STORAGE.geminiKey) ?? '',
+    geminiModel:   localStorage.getItem(STORAGE.geminiModel) ?? 'gemini-2.0-flash',
     ollamaBaseUrl: localStorage.getItem(STORAGE.ollamaUrl) ?? 'http://localhost:11434',
-    ollamaModel:  localStorage.getItem(STORAGE.ollamaModel) ?? 'llama3.2',
+    ollamaModel:   localStorage.getItem(STORAGE.ollamaModel) ?? 'llama3.2',
     evalSampleSize: 10,
     topK: 5,
     theme: 'light',
+    embeddingMode: (localStorage.getItem(STORAGE.embeddingMode) as EmbeddingMode) ?? 'local',
   }
 }
 

@@ -6,6 +6,7 @@ import { MetricRadar } from './MetricRadar'
 import { ComparisonTable } from './ComparisonTable'
 import { QuerySimulator } from './QuerySimulator'
 import type { ChunkResult, EvalResult, QueryResult } from '@/types'
+import type { EmbeddingMode } from '@/components/SettingsDrawer'
 
 interface Props {
   chunkResults: ChunkResult[]
@@ -21,6 +22,7 @@ interface Props {
     running: boolean
     relevanceJudgments: Record<string, Record<number, boolean>>
   }
+  embeddingMode: EmbeddingMode
   onRunEval: () => void
   onQueryChange: (q: string) => void
   onRunQuery: () => void
@@ -32,6 +34,7 @@ export function EvalPanel({
   chunkResults,
   evalState,
   queryState,
+  embeddingMode,
   onRunEval,
   onQueryChange,
   onRunQuery,
@@ -90,6 +93,7 @@ export function EvalPanel({
             <QuerySimulator
               chunkResults={chunkResults}
               queryState={queryState}
+              embeddingMode={embeddingMode}
               onQueryChange={onQueryChange}
               onRun={onRunQuery}
               onJudge={onJudge}

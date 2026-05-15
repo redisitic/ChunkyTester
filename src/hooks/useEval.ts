@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
 import { computeEvalMetrics } from '@/lib/evalMetrics'
-import { rankChunksByQuery } from '@/lib/embeddings'
+import { rankChunksByQuery, rankChunksByEmbedding } from '@/lib/embeddings'
 import type { ChunkResult, EvalResult, QueryResult, Chunk, LLMConfig } from '@/types'
+import type { EmbeddingMode } from '@/components/SettingsDrawer'
 
 interface EvalState {
   results: Record<string, EvalResult>
@@ -23,7 +24,7 @@ interface UseEvalReturn {
   queryState: QueryState
   runEval: (chunkResults: ChunkResult[], llmConfig: LLMConfig, sampleSize?: number) => Promise<void>
   setQuery: (query: string) => void
-  runQuery: (chunkResults: ChunkResult[], llmConfig: LLMConfig, topK?: number) => Promise<void>
+  runQuery: (chunkResults: ChunkResult[], llmConfig: LLMConfig, topK?: number, embeddingMode?: EmbeddingMode) => Promise<void>
   judgeRelevance: (strategyId: string, chunkIndex: number, relevant: boolean) => void
   precisionAt: (strategyId: string, k: number) => number | null
 }
@@ -97,7 +98,8 @@ export function useEval(): UseEvalReturn {
   const runQuery = useCallback(async (
     chunkResults: ChunkResult[],
     llmConfig: LLMConfig,
-    topK = 5
+    topK = 5,
+    embeddingMode: EmbeddingMode = 'local'
   ) => {
     setQueryState(prev => ({ ...prev, running: true }))
     const allResults: Record<string, QueryResult> = {}
@@ -113,12 +115,16 @@ export function useEval(): UseEvalReturn {
           ? childChunks.map(c => ({ index: c.index, text: c.embeddingInput ?? c.text }))
           : cr.chunks.map(c => ({ index: c.index, text: c.embeddingInput ?? c.text }))
 
-        const ranked = await rankChunksByQuery(
-          queryState.query,
-          candidates,
-          topK,
-          llmConfig
-        )
+        let ranked: { index: number; score: number }[]
+        if (embeddingMode === 'local') {
+          try {
+            ranked = await rankChunksByEmbedding(queryState.query, candidates, topK)
+          } catch {
+            ranked = await rankChunksByQuery(queryState.query, candidates, topK, llmConfig)
+          }
+        } else {
+          ranked = await rankChunksByQuery(queryState.query, candidates, topK, llmConfig)
+        }
 
         allResults[cr.strategyId] = {
           strategyId: cr.strategyId,

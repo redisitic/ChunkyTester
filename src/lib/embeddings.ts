@@ -1,4 +1,6 @@
 import { createLLMClient } from './llmClient'
+import { embedTexts } from './localEmbeddings'
+import { cosineSimilarity } from './similarity'
 import type { LLMConfig } from '@/types'
 
 export async function scoreSimilarityPairs(
@@ -40,4 +42,19 @@ ${chunks.map(c => `[${c.index}] ${c.text.slice(0, 400)}`).join('\n\n')}`
   } catch {
     return []
   }
+}
+
+export async function rankChunksByEmbedding(
+  query: string,
+  chunks: { index: number; text: string }[],
+  topK: number
+): Promise<{ index: number; score: number }[]> {
+  const texts = [query, ...chunks.map(c => c.text)]
+  const embeddings = await embedTexts(texts)
+  const queryVec = embeddings[0]
+
+  return chunks
+    .map((c, i) => ({ index: c.index, score: cosineSimilarity(queryVec, embeddings[i + 1]) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
 }

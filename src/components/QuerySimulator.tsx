@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type React from 'react'
 import { Loader2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import { subscribeEmbeddingStatus } from '@/lib/localEmbeddings'
+import type { EmbeddingStatus } from '@/lib/localEmbeddings'
 import type { ChunkResult, QueryResult } from '@/types'
+import type { EmbeddingMode } from '@/components/SettingsDrawer'
 
 interface Props {
   chunkResults: ChunkResult[]
@@ -15,14 +19,25 @@ interface Props {
     running: boolean
     relevanceJudgments: Record<string, Record<number, boolean>>
   }
+  embeddingMode: EmbeddingMode
   onQueryChange: (q: string) => void
   onRun: () => void
   onJudge: (strategyId: string, chunkIndex: number, relevant: boolean) => void
   precisionAt: (strategyId: string, k: number) => number | null
 }
 
-export function QuerySimulator({ chunkResults, queryState, onQueryChange, onRun, onJudge, precisionAt }: Props) {
+export function QuerySimulator({ chunkResults, queryState, embeddingMode, onQueryChange, onRun, onJudge, precisionAt }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [embStatus, setEmbStatus] = useState<EmbeddingStatus>('idle')
+  const [embProgress, setEmbProgress] = useState(0)
+
+  useEffect(() => {
+    if (embeddingMode !== 'local') return
+    return subscribeEmbeddingStatus((status, progress) => {
+      setEmbStatus(status)
+      setEmbProgress(progress)
+    })
+  }, [embeddingMode])
 
   const hasResults = Object.keys(queryState.results).length > 0
 
@@ -38,11 +53,41 @@ export function QuerySimulator({ chunkResults, queryState, onQueryChange, onRun,
         />
         <Button
           onClick={onRun}
-          disabled={queryState.running || !queryState.query.trim() || chunkResults.length === 0}
+          disabled={queryState.running || !queryState.query.trim() || chunkResults.length === 0 || (embeddingMode === 'local' && embStatus === 'loading')}
         >
           {queryState.running ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simulate Retrieval'}
         </Button>
       </div>
+
+      {embeddingMode === 'local' && embStatus === 'loading' && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Loading embedding model (Xenova/all-MiniLM-L6-v2)… {embProgress > 0 ? `${Math.round(embProgress)}%` : ''}</span>
+          </div>
+          <Progress value={embProgress} className="h-1" />
+        </div>
+      )}
+
+      {embeddingMode === 'local' && embStatus === 'error' && (
+        <p className="text-xs text-destructive">
+          Embedding model failed to load. Retrieval will fall back to LLM ranking.
+        </p>
+      )}
+
+      {embeddingMode === 'local' && embStatus === 'ready' && (
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className="text-[10px] font-mono">all-MiniLM-L6-v2</Badge>
+          <span className="text-xs text-muted-foreground">cosine similarity · local</span>
+        </div>
+      )}
+
+      {embeddingMode === 'llm' && (
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className="text-[10px]">LLM ranking</Badge>
+          <span className="text-xs text-muted-foreground">relevance scored via prompt</span>
+        </div>
+      )}
 
       {hasResults && (
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(chunkResults.length, 3)}, minmax(0,1fr))` }}>
