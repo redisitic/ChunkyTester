@@ -1,5 +1,7 @@
 export type LLMProvider = 'anthropic' | 'gemini' | 'ollama'
 
+export type EmbeddingMode = 'local' | 'llm' | 'voyage'
+
 export interface LLMConfig {
   provider: LLMProvider
   anthropicKey?: string
@@ -7,6 +9,7 @@ export interface LLMConfig {
   geminiModel?: string
   ollamaBaseUrl?: string
   ollamaModel?: string
+  voyageKey?: string
 }
 
 export interface Chunk {

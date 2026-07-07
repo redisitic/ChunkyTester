@@ -45,7 +45,7 @@ const structureAwareChunker: ChunkerDefinition = {
 
     if (headings.length === 0) {
       const { default: recursive } = await import('./recursiveSemanticChunker')
-      return recursive.run(text, structure, { targetChunkSize: maxTokens * 4, coherenceThreshold: 0.75, mergeThreshold: 0.92 }, llmConfig)
+      return recursive.run(text, structure, { maxChunkChars: maxTokens * 4, splitThreshold: 0.65, mergeThreshold: 0.88, minSentences: 2 }, llmConfig)
     }
 
     const sections: { text: string }[] = []

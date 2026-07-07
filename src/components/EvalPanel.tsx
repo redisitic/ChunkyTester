@@ -2,11 +2,12 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { MetricRadar } from './MetricRadar'
 import { ComparisonTable } from './ComparisonTable'
 import { QuerySimulator } from './QuerySimulator'
-import type { ChunkResult, EvalResult, QueryResult } from '@/types'
-import type { EmbeddingMode } from '@/components/SettingsDrawer'
+import { BenchmarkPanel } from './BenchmarkPanel'
+import type { ChunkResult, EvalResult, QueryResult, LLMConfig, EmbeddingMode } from '@/types'
 
 interface Props {
   chunkResults: ChunkResult[]
@@ -23,6 +24,8 @@ interface Props {
     relevanceJudgments: Record<string, Record<number, boolean>>
   }
   embeddingMode: EmbeddingMode
+  voyageKey: string
+  llmConfig: LLMConfig
   onRunEval: () => void
   onQueryChange: (q: string) => void
   onRunQuery: () => void
@@ -35,6 +38,8 @@ export function EvalPanel({
   evalState,
   queryState,
   embeddingMode,
+  voyageKey,
+  llmConfig,
   onRunEval,
   onQueryChange,
   onRunQuery,
@@ -51,6 +56,10 @@ export function EvalPanel({
           <TabsList>
             <TabsTrigger value="metrics">Automated Metrics</TabsTrigger>
             <TabsTrigger value="query">Query Simulator</TabsTrigger>
+            <TabsTrigger value="benchmark" className="gap-1.5">
+              Benchmark
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5">NEW</Badge>
+            </TabsTrigger>
           </TabsList>
 
           <Button
@@ -100,6 +109,15 @@ export function EvalPanel({
               precisionAt={precisionAt}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="benchmark" className="mt-0">
+          <BenchmarkPanel
+            chunkResults={chunkResults}
+            embeddingMode={embeddingMode}
+            voyageKey={voyageKey}
+            llmConfig={llmConfig}
+          />
         </TabsContent>
       </Tabs>
     </div>

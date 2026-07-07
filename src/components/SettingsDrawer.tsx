@@ -6,7 +6,8 @@ import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { LLMProvider } from '@/types'
+import { clearVoyageCache } from '@/lib/voyageEmbeddings'
+import type { LLMProvider, EmbeddingMode } from '@/types'
 
 const STORAGE = {
   provider:      'rag_portal_provider',
@@ -16,11 +17,12 @@ const STORAGE = {
   ollamaUrl:     'rag_portal_ollama_url',
   ollamaModel:   'rag_portal_ollama_model',
   embeddingMode: 'rag_portal_embedding_mode',
+  voyageKey:     'rag_portal_voyage_key',
 }
 
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
 
-export type EmbeddingMode = 'local' | 'llm'
+export type { EmbeddingMode }
 
 export interface AppSettings {
   provider: LLMProvider
@@ -33,6 +35,7 @@ export interface AppSettings {
   topK: number
   theme: 'light' | 'dark'
   embeddingMode: EmbeddingMode
+  voyageKey: string
 }
 
 interface Props {
@@ -201,14 +204,36 @@ export function SettingsDrawer({ settings, onSettingsChange }: Props) {
             <SelectContent>
               <SelectItem value="local">Local (transformers.js · free · in-browser)</SelectItem>
               <SelectItem value="llm">LLM ranking (uses API credits)</SelectItem>
+              <SelectItem value="voyage">Voyage AI (voyage-finance-2)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
             {settings.embeddingMode === 'local'
               ? 'Xenova/all-MiniLM-L6-v2 · ~23 MB · downloaded once, cached by browser'
+              : settings.embeddingMode === 'voyage'
+              ? 'voyage-finance-2 · 1024 dims · $0.00012/1K tokens · finance-optimised'
               : 'LLM scores chunks by relevance via prompt — no local model required'}
           </p>
         </div>
+
+        {settings.embeddingMode === 'voyage' && (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Voyage AI API Key</label>
+            <KeyInput
+              value={settings.voyageKey}
+              placeholder="pa-…"
+              onChange={v => {
+                persist('voyageKey', v)
+                onSettingsChange({ voyageKey: v })
+                clearVoyageCache()
+              }}
+            />
+            <p className="text-xs text-muted-foreground font-mono">voyage-finance-2 · 1024 dims</p>
+            <Alert className="py-2">
+              <AlertDescription className="text-xs">Stored in browser only. Sent only to api.voyageai.com.</AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Theme</label>
@@ -233,6 +258,7 @@ export function loadSettings(): AppSettings {
     topK: 5,
     theme: 'light',
     embeddingMode: (localStorage.getItem(STORAGE.embeddingMode) as EmbeddingMode) ?? 'local',
+    voyageKey:     localStorage.getItem(STORAGE.voyageKey) ?? '',
   }
 }
 
