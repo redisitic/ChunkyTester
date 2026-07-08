@@ -1,8 +1,10 @@
-export type LLMProvider = 'anthropic' | 'gemini' | 'ollama'
+export type LLMProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama'
 
 export interface LLMConfig {
   provider: LLMProvider
   anthropicKey?: string
+  openaiKey?: string
+  openaiModel?: string
   geminiKey?: string
   geminiModel?: string
   ollamaBaseUrl?: string
