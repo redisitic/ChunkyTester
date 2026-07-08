@@ -15,6 +15,139 @@ export interface LLMClient {
   readonly label: string
 }
 
+// --- OpenAI ---
+
+const OPENAI_COSTS: Record<string, { input: number; output: number }> = {
+  'gpt-5.5':      { input: 5.00 / 1_000_000, output: 30.00 / 1_000_000 },
+  'gpt-5.4':      { input: 2.50 / 1_000_000, output: 15.00 / 1_000_000 },
+  'gpt-5.4-mini': { input: 0.75 / 1_000_000, output: 4.50  / 1_000_000 },
+  'gpt-5.4-nano': { input: 0.20 / 1_000_000, output: 1.25  / 1_000_000 },
+}
+
+interface OpenAIResponseContent {
+  type?: string
+  text?: string
+}
+
+interface OpenAIResponseOutput {
+  type?: string
+  content?: OpenAIResponseContent[]
+}
+
+interface OpenAIUsage {
+  input_tokens?: number
+  output_tokens?: number
+}
+
+interface OpenAIResponse {
+  output_text?: string
+  output?: OpenAIResponseOutput[]
+  usage?: OpenAIUsage
+}
+
+function getOpenAIText(data: OpenAIResponse): string {
+  if (data.output_text) return data.output_text
+  return data.output
+    ?.flatMap(item => item.content ?? [])
+    .filter(content => content.type === 'output_text' || content.text)
+    .map(content => content.text ?? '')
+    .join('') ?? ''
+}
+
+function createOpenAIClient(config: LLMConfig): LLMClient {
+  const model = config.openaiModel ?? 'gpt-5.4-mini'
+  const costs = OPENAI_COSTS[model] ?? OPENAI_COSTS['gpt-5.4-mini']
+  const base = 'https://api.openai.com/v1/responses'
+
+  function buildBody(system: string | null, user: string, maxTokens: number, stream: boolean) {
+    return {
+      model,
+      input: [{ role: 'user', content: user }],
+      max_output_tokens: maxTokens,
+      ...(system ? { instructions: system } : {}),
+      ...(stream ? { stream: true } : {}),
+    }
+  }
+
+  function headers() {
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.openaiKey}`,
+    }
+  }
+
+  return {
+    costPerInputToken: costs.input,
+    costPerOutputToken: costs.output,
+    label: `OpenAI (${model})`,
+
+    async complete(system, user, maxTokens) {
+      const res = await fetch(base, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(buildBody(system, user, maxTokens, false)),
+      })
+      if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${await res.text()}`)
+      const data = await res.json() as OpenAIResponse
+      return {
+        text: getOpenAIText(data),
+        inputTokens: data.usage?.input_tokens ?? 0,
+        outputTokens: data.usage?.output_tokens ?? 0,
+      }
+    },
+
+    async streamComplete(system, user, maxTokens, onChunk) {
+      const res = await fetch(base, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(buildBody(system, user, maxTokens, true)),
+      })
+      if (!res.ok) throw new Error(`OpenAI stream error ${res.status}: ${await res.text()}`)
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let accumulated = ''
+      let inputTokens = 0
+      let outputTokens = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split('\n\n')
+        buffer = events.pop() ?? ''
+
+        for (const event of events) {
+          const dataLine = event
+            .split('\n')
+            .find(line => line.startsWith('data: '))
+          if (!dataLine) continue
+
+          const json = dataLine.slice(6)
+          if (json === '[DONE]') continue
+
+          try {
+            const data = JSON.parse(json)
+            if (data.type === 'response.output_text.delta' && data.delta) {
+              accumulated += data.delta
+              onChunk?.(data.delta)
+            }
+            const usage = data.response?.usage ?? data.usage
+            if (usage) {
+              inputTokens = usage.input_tokens ?? inputTokens
+              outputTokens = usage.output_tokens ?? outputTokens
+            }
+          } catch { /* skip malformed */ }
+        }
+      }
+
+      return { text: accumulated, inputTokens, outputTokens }
+    },
+  }
+}
+
 // --- Anthropic ---
 
 function createAnthropicClient(config: LLMConfig): LLMClient {
@@ -235,6 +368,7 @@ function createOllamaClient(config: LLMConfig): LLMClient {
 
 export function createLLMClient(config: LLMConfig): LLMClient {
   switch (config.provider) {
+    case 'openai': return createOpenAIClient(config)
     case 'gemini': return createGeminiClient(config)
     case 'ollama': return createOllamaClient(config)
     default:       return createAnthropicClient(config)

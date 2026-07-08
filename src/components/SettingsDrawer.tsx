@@ -11,6 +11,8 @@ import type { LLMProvider } from '@/types'
 const STORAGE = {
   provider:      'rag_portal_provider',
   anthropicKey:  'rag_portal_apikey',
+  openaiKey:     'rag_portal_openai_key',
+  openaiModel:   'rag_portal_openai_model',
   geminiKey:     'rag_portal_gemini_key',
   geminiModel:   'rag_portal_gemini_model',
   ollamaUrl:     'rag_portal_ollama_url',
@@ -18,6 +20,7 @@ const STORAGE = {
   embeddingMode: 'rag_portal_embedding_mode',
 }
 
+const OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4', 'gpt-5.5']
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
 
 export type EmbeddingMode = 'local' | 'llm'
@@ -25,6 +28,8 @@ export type EmbeddingMode = 'local' | 'llm'
 export interface AppSettings {
   provider: LLMProvider
   anthropicKey: string
+  openaiKey: string
+  openaiModel: string
   geminiKey: string
   geminiModel: string
   ollamaBaseUrl: string
@@ -86,6 +91,7 @@ export function SettingsDrawer({ settings, onSettingsChange }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+              <SelectItem value="openai">OpenAI</SelectItem>
               <SelectItem value="gemini">Google Gemini</SelectItem>
               <SelectItem value="ollama">Ollama (local)</SelectItem>
             </SelectContent>
@@ -106,6 +112,37 @@ export function SettingsDrawer({ settings, onSettingsChange }: Props) {
             <Alert className="py-2">
               <AlertDescription className="text-xs">Stored in browser only. Never sent to any server other than api.anthropic.com.</AlertDescription>
             </Alert>
+          </div>
+        )}
+
+        {settings.provider === 'openai' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">OpenAI API Key</label>
+              <KeyInput
+                value={settings.openaiKey}
+                placeholder="sk-…"
+                onChange={v => { persist('openaiKey', v); onSettingsChange({ openaiKey: v }) }}
+              />
+              <Alert className="py-2">
+                <AlertDescription className="text-xs">Stored in browser only. Never sent to any server other than api.openai.com.</AlertDescription>
+              </Alert>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Model</label>
+              <Select value={settings.openaiModel} onValueChange={v => v && (persist('openaiModel', v), onSettingsChange({ openaiModel: v }))}>
+                <SelectTrigger className="h-8 text-sm w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {OPENAI_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {settings.openaiModel === 'gpt-5.5' && '$5/$30 per M tokens'}
+                {settings.openaiModel === 'gpt-5.4' && '$2.50/$15 per M tokens'}
+                {settings.openaiModel === 'gpt-5.4-mini' && '$0.75/$4.50 per M tokens'}
+                {settings.openaiModel === 'gpt-5.4-nano' && '$0.20/$1.25 per M tokens'}
+              </p>
+            </div>
           </div>
         )}
 
@@ -225,6 +262,8 @@ export function loadSettings(): AppSettings {
   return {
     provider:      (localStorage.getItem(STORAGE.provider) as LLMProvider) ?? 'anthropic',
     anthropicKey:  localStorage.getItem(STORAGE.anthropicKey) ?? '',
+    openaiKey:     localStorage.getItem(STORAGE.openaiKey) ?? '',
+    openaiModel:   localStorage.getItem(STORAGE.openaiModel) ?? 'gpt-5.4-mini',
     geminiKey:     localStorage.getItem(STORAGE.geminiKey) ?? '',
     geminiModel:   localStorage.getItem(STORAGE.geminiModel) ?? 'gemini-2.0-flash',
     ollamaBaseUrl: localStorage.getItem(STORAGE.ollamaUrl) ?? 'http://localhost:11434',
