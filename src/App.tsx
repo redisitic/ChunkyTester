@@ -26,6 +26,8 @@ function buildLLMConfig(settings: AppSettings): LLMConfig {
   return {
     provider: settings.provider,
     anthropicKey: settings.anthropicKey,
+    openaiKey: settings.openaiKey,
+    openaiModel: settings.openaiModel,
     geminiKey: settings.geminiKey,
     geminiModel: settings.geminiModel,
     ollamaBaseUrl: settings.ollamaBaseUrl,
@@ -56,6 +58,10 @@ export default function App() {
 
   const passageTokens = estimateTokens(passage)
   const completedResults = columns.map(c => c.result).filter(Boolean) as NonNullable<typeof columns[0]['result']>[]
+  const missingApiKey =
+    (settings.provider === 'anthropic' && !settings.anthropicKey) ||
+    (settings.provider === 'openai' && !settings.openaiKey) ||
+    (settings.provider === 'gemini' && !settings.geminiKey)
 
   function guardedRun(index: number | 'all') {
     if (passage.length > PASSAGE_WARN_CHARS) {
@@ -141,9 +147,9 @@ export default function App() {
             <Badge variant="secondary" className="text-[10px]">{passage.length.toLocaleString()} chars selected</Badge>
             <Badge variant="secondary" className="text-[10px]">~{passageTokens.toLocaleString()} tokens</Badge>
           </div>
-          {settings.provider === 'anthropic' && !settings.anthropicKey && (
+          {missingApiKey && (
             <Alert variant="destructive" className="py-1 px-3 h-7 flex items-center ml-2">
-              <AlertDescription className="text-xs">No API key set — open Settings</AlertDescription>
+              <AlertDescription className="text-xs">No API key set. Open Settings</AlertDescription>
             </Alert>
           )}
           <div className="ml-auto flex items-center gap-2">

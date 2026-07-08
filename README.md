@@ -50,6 +50,7 @@ Enter a test query and the tool ranks each strategy's chunks by relevance using 
 | Provider | Models | Cost |
 |---|---|---|
 | Anthropic | claude-sonnet-4-20250514 | $3 / $15 per million tokens (input/output) |
+| OpenAI | gpt-5.4-mini, gpt-5.4-nano, gpt-5.4, gpt-5.5 | varies by model |
 | Google Gemini | gemini-2.0-flash, gemini-1.5-flash, gemini-1.5-pro | varies by model |
 | Ollama | any locally installed model | free |
 
@@ -66,7 +67,7 @@ For Qwen3 models on Ollama, the `think` flag is automatically set to `false` to 
 ### Prerequisites
 
 - Node.js 18 or later
-- An API key for Anthropic, Google Gemini, or a running Ollama instance
+- An API key for Anthropic, OpenAI, Google Gemini, or a running Ollama instance
 
 ### Install and run
 
