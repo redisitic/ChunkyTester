@@ -8,10 +8,12 @@ import agenticChunker from './chunkers/agenticChunker'
 import tableAwareChunker from './chunkers/tableAwareChunker'
 import contextualRetrievalChunker from './chunkers/contextualRetrievalChunker'
 import raptorChunker from './chunkers/raptorChunker'
+import raptorKGChunker from './chunkers/raptorKGChunker'
 import type { ChunkerDefinition } from './chunkers/types'
 
 export const CHUNKERS: ChunkerDefinition[] = [
   // ── Production-quality strategies (recommended) ──────────────────────────
+  raptorKGChunker,            // RAPTOR tree + KG triples on every node (hybrid)
   tableAwareChunker,          // finance-critical: keeps tables intact
   contextualRetrievalChunker, // Anthropic 2024: document-level context prefix
   raptorChunker,              // Stanford ICLR 2024: multi-level summary tree
