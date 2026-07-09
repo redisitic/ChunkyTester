@@ -1,5 +1,6 @@
 import { createLLMClient } from './llmClient'
 import { embedTexts } from './localEmbeddings'
+import { embedTextsVoyage } from './voyageEmbeddings'
 import { cosineSimilarity } from './similarity'
 import type { LLMConfig } from '@/types'
 
@@ -57,4 +58,39 @@ export async function rankChunksByEmbedding(
     .map((c, i) => ({ index: c.index, score: cosineSimilarity(queryVec, embeddings[i + 1]) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, topK)
+}
+
+/**
+ * Rank chunks using voyage-finance-2 embeddings.
+ * Uses input_type="query" for the query and input_type="document" for chunks.
+ * Chunk embeddings are cached in voyageEmbeddings module — safe to call repeatedly.
+ */
+export async function rankChunksByVoyageEmbedding(
+  query: string,
+  chunks: { index: number; text: string }[],
+  topK: number,
+  voyageKey: string
+): Promise<{ index: number; score: number }[]> {
+  const [queryEmbeddings, chunkEmbeddings] = await Promise.all([
+    embedTextsVoyage([query], voyageKey, 'query'),
+    embedTextsVoyage(chunks.map(c => c.text), voyageKey, 'document'),
+  ])
+
+  const queryVec = queryEmbeddings[0]
+
+  return chunks
+    .map((c, i) => ({ index: c.index, score: cosineSimilarity(queryVec, chunkEmbeddings[i]) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+}
+
+/**
+ * Embed all chunks for a strategy (document embeddings, cached).
+ * Returns raw embedding vectors indexed parallel to `chunks`.
+ */
+export async function embedChunksVoyage(
+  chunks: { index: number; text: string }[],
+  voyageKey: string
+): Promise<number[][]> {
+  return embedTextsVoyage(chunks.map(c => c.text), voyageKey, 'document')
 }

@@ -11,9 +11,9 @@ function splitSentences(text: string): string[] {
 
 const kamradtSemanticChunker: ChunkerDefinition = {
   id: 'kamradt_semantic',
-  label: 'Kamradt Semantic Chunker',
-  description: "Splits at the Nth percentile of similarity drops between adjacent sentences — adapts to document vocabulary rather than a fixed threshold.",
-  paperRef: 'Greg Kamradt, "5 Levels of Text Splitting" notebook, 2024',
+  label: 'Kamradt Semantic (Legacy)',
+  description: "[Legacy baseline] Splits at the Nth percentile of similarity drops between adjacent sentences. Good as a fast, no-extra-LLM-call reference point — superseded by Recursive Semantic for production use.",
+  paperRef: 'Greg Kamradt, "5 Levels of Text Splitting" notebook, 2024 — legacy baseline',
   configSchema: [
     { key: 'breakpointPercentile', label: 'Breakpoint Percentile', description: 'Top N% of similarity drops become chunk boundaries', type: 'slider', min: 50, max: 99, step: 1, default: 85 },
     { key: 'minChunkSentences', label: 'Min Chunk Sentences', description: 'Minimum sentences per chunk', type: 'slider', min: 1, max: 10, step: 1, default: 2 },

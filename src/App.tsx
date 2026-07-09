@@ -32,6 +32,7 @@ function buildLLMConfig(settings: AppSettings): LLMConfig {
     geminiModel: settings.geminiModel,
     ollamaBaseUrl: settings.ollamaBaseUrl,
     ollamaModel: settings.ollamaModel,
+    voyageKey: settings.voyageKey,
   }
 }
 
@@ -209,9 +210,11 @@ export default function App() {
                 evalState={evalState}
                 queryState={queryState}
                 embeddingMode={settings.embeddingMode}
+                voyageKey={settings.voyageKey}
+                llmConfig={buildLLMConfig(settings)}
                 onRunEval={() => runEval(completedResults, buildLLMConfig(settings), settings.evalSampleSize)}
                 onQueryChange={setQuery}
-                onRunQuery={() => runQuery(completedResults, buildLLMConfig(settings), settings.topK, settings.embeddingMode)}
+                onRunQuery={() => runQuery(completedResults, buildLLMConfig(settings), settings.topK, settings.embeddingMode, settings.voyageKey)}
                 onJudge={judgeRelevance}
                 precisionAt={precisionAt}
               />

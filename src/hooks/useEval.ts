@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react'
 import { computeEvalMetrics } from '@/lib/evalMetrics'
-import { rankChunksByQuery, rankChunksByEmbedding } from '@/lib/embeddings'
-import type { ChunkResult, EvalResult, QueryResult, Chunk, LLMConfig } from '@/types'
-import type { EmbeddingMode } from '@/components/SettingsDrawer'
+import { rankChunksByQuery, rankChunksByEmbedding, rankChunksByVoyageEmbedding } from '@/lib/embeddings'
+import type { ChunkResult, EvalResult, QueryResult, Chunk, LLMConfig, EmbeddingMode } from '@/types'
 
 interface EvalState {
   results: Record<string, EvalResult>
@@ -24,7 +23,7 @@ interface UseEvalReturn {
   queryState: QueryState
   runEval: (chunkResults: ChunkResult[], llmConfig: LLMConfig, sampleSize?: number) => Promise<void>
   setQuery: (query: string) => void
-  runQuery: (chunkResults: ChunkResult[], llmConfig: LLMConfig, topK?: number, embeddingMode?: EmbeddingMode) => Promise<void>
+  runQuery: (chunkResults: ChunkResult[], llmConfig: LLMConfig, topK?: number, embeddingMode?: EmbeddingMode, voyageKey?: string) => Promise<void>
   judgeRelevance: (strategyId: string, chunkIndex: number, relevant: boolean) => void
   precisionAt: (strategyId: string, k: number) => number | null
 }
@@ -99,7 +98,8 @@ export function useEval(): UseEvalReturn {
     chunkResults: ChunkResult[],
     llmConfig: LLMConfig,
     topK = 5,
-    embeddingMode: EmbeddingMode = 'local'
+    embeddingMode: EmbeddingMode = 'local',
+    voyageKey = ''
   ) => {
     setQueryState(prev => ({ ...prev, running: true }))
     const allResults: Record<string, QueryResult> = {}
@@ -116,7 +116,9 @@ export function useEval(): UseEvalReturn {
           : cr.chunks.map(c => ({ index: c.index, text: c.embeddingInput ?? c.text }))
 
         let ranked: { index: number; score: number }[]
-        if (embeddingMode === 'local') {
+        if (embeddingMode === 'voyage' && voyageKey) {
+          ranked = await rankChunksByVoyageEmbedding(queryState.query, candidates, topK, voyageKey)
+        } else if (embeddingMode === 'local') {
           try {
             ranked = await rankChunksByEmbedding(queryState.query, candidates, topK)
           } catch {

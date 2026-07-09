@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type React from 'react'
-import { Loader2, Check, X } from 'lucide-react'
+import { Loader2, Check, X, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -8,8 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { subscribeEmbeddingStatus } from '@/lib/localEmbeddings'
 import type { EmbeddingStatus } from '@/lib/localEmbeddings'
-import type { ChunkResult, QueryResult } from '@/types'
-import type { EmbeddingMode } from '@/components/SettingsDrawer'
+import type { ChunkResult, QueryResult, EmbeddingMode } from '@/types'
 
 interface Props {
   chunkResults: ChunkResult[]
@@ -86,6 +85,16 @@ export function QuerySimulator({ chunkResults, queryState, embeddingMode, onQuer
         <div className="flex items-center gap-1.5">
           <Badge variant="outline" className="text-[10px]">LLM ranking</Badge>
           <span className="text-xs text-muted-foreground">relevance scored via prompt</span>
+        </div>
+      )}
+
+      {embeddingMode === 'voyage' && (
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className="text-[10px] font-mono gap-1">
+            <Target className="w-2.5 h-2.5" />
+            voyage-finance-2
+          </Badge>
+          <span className="text-xs text-muted-foreground">cosine similarity · 1024 dims · finance</span>
         </div>
       )}
 
